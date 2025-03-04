@@ -92,6 +92,17 @@ router.get('/isbn/:isbn', async (req, res) => {
   }
 })
 
+// Using Promise instead of async await
+router.get('/isbn/:isbn', (req, res) => {
+  axios.get(`${BOOKS_API}/isbn/${req.params.isbn}`)
+    .then((response) => {
+      return res.status(200).json(response.data);
+    })
+    .catch((error) => {
+      return res.status(500).json({ message: 'Error fetching book details', error: error.message });
+    })
+})
+
 router.get('/author/:author', async (req, res) => {
   try {
     const { author } = req.params;
