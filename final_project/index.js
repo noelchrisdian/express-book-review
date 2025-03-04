@@ -1,22 +1,36 @@
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const session = require('express-session')
-const customer_routes = require('./router/auth_users.js').authenticated;
-const genl_routes = require('./router/general.js').general;
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import session from 'express-session';
+import { authenticated as customerRoutes } from './router/auth_users.js';
+import { general as generalRoutes } from './router/general.js';
 
 const app = express();
+const PORT = 5000;
+app
+    .use(express.json())
+    .use("/customer", session({ secret: "fingerprint_customer", resave: true, saveUninitialized: true }))
 
-app.use(express.json());
+app.use("/customer/auth/*", (req, res, next) => {
+    const token = req.headers.authorization;
 
-app.use("/customer",session({secret:"fingerprint_customer",resave: true, saveUninitialized: true}))
+    if (!token) {
+        return res.status(403).json({ message: 'Token is required!' });
+    }
 
-app.use("/customer/auth/*", function auth(req,res,next){
-//Write the authenication mechanism here
-});
- 
-const PORT =5000;
+    jwt.verify(token.split(' ')[1], 'fingerprint_customer', (error, decoded) => {
+        if (error) {
+            return res.status(401).json({ message: 'Invalid token!' });
+        }
 
-app.use("/customer", customer_routes);
-app.use("/", genl_routes);
+        req.user = decoded;
+        next();
+    })
+})
 
-app.listen(PORT,()=>console.log("Server is running"));
+app
+    .use("/customer", customerRoutes)
+    .use("/", generalRoutes)
+
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+})
